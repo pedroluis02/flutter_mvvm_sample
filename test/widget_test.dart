@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:flutter_mvvm_sample/main.dart';
+import 'package:flutter_mvvm_sample/domain/model/topic.dart';
+import 'package:flutter_mvvm_sample/domain/repository/topic.dart';
+import 'package:flutter_mvvm_sample/presentation/topic_list/view_model.dart';
+import 'package:flutter_mvvm_sample/presentation/topic_list/view.dart';
+
+import 'app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Topic List View', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          topicListViewModel
+              .overrideWith((_) => TopicListViewModel(TopicRepositoryMock())),
+        ],
+        child: const MyApplicationTest(
+          home: TopicListView(),
+        ),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final element = tester.element(find.byType(TopicListView));
+    final container = ProviderScope.containerOf(element);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    final viewModel = container.read(topicListViewModel);
+    expect(viewModel.state.topics.length, 1);
   });
+}
+
+class TopicRepositoryMock implements TopicRepository {
+  final _topics = const <Topic>[Topic('1', 'Topic 1')];
+
+  @override
+  Future<List<Topic>> findAll() async => _topics;
 }
